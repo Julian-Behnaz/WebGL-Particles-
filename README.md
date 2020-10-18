@@ -1,4 +1,4 @@
-![Triangles](./src/media/Triangles.png)
+![Particles](./src/media/particles.png)
 
 ## First-time Setup
 
