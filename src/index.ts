@@ -38,37 +38,42 @@ const particlePositionLoc = gl.getAttribLocation(particleProgram, "a_position");
 const timeUniformLocation= gl.getUniformLocation(program, "u_time");
 const textureUniformLocation = gl.getUniformLocation(program, "u_texture");
 
+const particleTimeUniformLocation= gl.getUniformLocation(particleProgram, "u_time");
 const particleTextureUniformLoc = gl.getUniformLocation(particleProgram, "u_texture");
 
 
 
-const particleTexture = gl.createTexture();
+const particleTexture1 = gl.createTexture();
+const particleTexture2 = gl.createTexture();
 
 // Texture unit 0
 gl.activeTexture(gl.TEXTURE0 + 0);
 
-gl.bindTexture(gl.TEXTURE_2D, particleTexture);
+
+const TEX_WIDTH = 255;
+const TEX_HEIGHT = 255;
+gl.bindTexture(gl.TEXTURE_2D, particleTexture1);
 {
-    const width = 255;
-    const height = 255;
     const bytesPerPixel = 4;
-    const data = new Uint8Array(width * height * bytesPerPixel);
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            data[y * width * bytesPerPixel + x * bytesPerPixel + 0] = (Math.random()*255)|0; // r
-            data[y * width * bytesPerPixel + x * bytesPerPixel + 2] = (Math.random()*255)|0; // b
-            data[y * width * bytesPerPixel + x * bytesPerPixel + 1] = (Math.random()*255)|0; // g
-            data[y * width * bytesPerPixel + x * bytesPerPixel + 3] = (Math.random()*255)|0; // A
+   // creating the data that we will use to represnet particle positions: r & b will be used to represnet x cordinate of the particle and g&A represnet y cordinate
+    const data = new Uint8Array(TEX_WIDTH * TEX_HEIGHT * bytesPerPixel);
+    for (let y = 0; y < TEX_HEIGHT; y++) {
+        for (let x = 0; x < TEX_WIDTH; x++) {
+            data[y * TEX_WIDTH * bytesPerPixel + x * bytesPerPixel + 0] = (Math.random()*255)|0; // r
+            data[y * TEX_WIDTH * bytesPerPixel + x * bytesPerPixel + 2] = (Math.random()*255)|0; // b
+            data[y * TEX_WIDTH * bytesPerPixel + x * bytesPerPixel + 1] = (Math.random()*255)|0; // g
+            data[y * TEX_WIDTH * bytesPerPixel + x * bytesPerPixel + 3] = (Math.random()*255)|0; // A
         }
     }
     console.log(data);
     const alignment = 1;
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, alignment);
+    //upload data to the GPU in a form of 2D texture width*height pixels
     gl.texImage2D(gl.TEXTURE_2D,
         /* level */0,
         /* internal format */gl.RGBA,
-        width,
-        height,
+        TEX_WIDTH,
+        TEX_HEIGHT,
         /* border */ 0,
         /* format */gl.RGBA,
         /* type */gl.UNSIGNED_BYTE,
@@ -79,6 +84,27 @@ gl.bindTexture(gl.TEXTURE_2D, particleTexture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
+gl.bindTexture(gl.TEXTURE_2D, particleTexture2);
+{
+    const alignment = 1;
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, alignment);
+    //upload data to the GPU in a form of 2D texture width*height pixels
+    gl.texImage2D(gl.TEXTURE_2D,
+        /* level */0,
+        /* internal format */gl.RGBA,
+        TEX_WIDTH,
+        TEX_HEIGHT,
+        /* border */ 0,
+        /* format */gl.RGBA,
+        /* type */gl.UNSIGNED_BYTE,
+        null);
+    // set the filtering so we don't need mips and it's not filtered
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
 
 const particlePosition = gl.createBuffer();
 {
@@ -119,6 +145,18 @@ const particleIndexBuffer = gl.createBuffer();
 
   const indexes = [ // indices
     0, 1, 2, 2, 3, 1
+
+/* 
+index: 0            index: 2
+ (-1,1)------------(1,1)
+       |          / |
+       |       /    |
+       |    /       |
+       | /          |
+ (-1,-1)-----------(1,-1)
+index: 1            index: 3
+*/
+
   ];
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexes), gl.STATIC_DRAW);
 }
@@ -173,14 +211,31 @@ const vao = gl.createVertexArray();
     }
 }
 
+let readingFromTexture = particleTexture1;
+let writingToTexture = particleTexture2;
+
+const particleFrameBuffer= gl.createFramebuffer();
 
 function drawNow(time: number) {
     stats.begin();
 
     resize(canvas);
     
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, particleFrameBuffer);
+    // attach the texture as the first color attachment
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, writingToTexture, /* level */0);
+
+    gl.bindTexture(gl.TEXTURE_2D, readingFromTexture);
+
+    /* Set viewport to match texture size */
+    gl.viewport(0, 0, 255, 255);
+
+    // gl.clearColor(0, 0, 0, 1);
+    // gl.clear(gl.COLOR_BUFFER_BIT);
     
     //texture:
     gl.useProgram(program);
@@ -199,10 +254,21 @@ function drawNow(time: number) {
         }
     }
 
+
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.bindTexture(gl.TEXTURE_2D, writingToTexture);
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
     //particle: 
     gl.useProgram(particleProgram);
     {
         gl.uniform1i(particleTextureUniformLoc, 0); // texture unit 0
+        gl.uniform1f(particleTimeUniformLocation, time);
         gl.bindVertexArray(particleVao);
         {
             const primitiveType = gl.TRIANGLES;
@@ -221,6 +287,10 @@ function drawNow(time: number) {
         }
     }
 
+
+    const temp = readingFromTexture;
+    readingFromTexture = writingToTexture;
+    writingToTexture = temp;
 
     stats.end();
 
@@ -287,7 +357,5 @@ function resize(canvas: HTMLCanvasElement) {
       // Make the canvas the same size
       canvas.width  = displayWidth;
       canvas.height = displayHeight;
-
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     }
 }
