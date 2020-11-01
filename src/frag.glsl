@@ -2,8 +2,6 @@
  
 in highp vec2 v_texCoord;
 
-uniform sampler2D u_texture;
-
 // fragment shaders don't have a default precision so we need
 // to pick one. highp is a good default. It means "high precision"
 precision highp float;
@@ -14,24 +12,6 @@ uniform float u_windAmp;
 
 // we need to declare an output for the fragment shader
 out vec4 outColor;
- 
-
-vec2 encode(float value) {
-  // value is between -1 and 1
-  // shift it to be between 0 and 1:
-  float v = ((value + 1.0) * 0.5) * 65535.0;
-  float hi = floor(v/256.0);
-  float lo = v - (hi*256.0);
-  return vec2(hi, lo)/255.0;
-}
-
-float decode(vec2 channels) {
-  vec2 hilo = channels*255.0;
-  float hi = hilo.x * 256.0;
-  float lo = hilo.y;
-  float res = (hi + lo)/65535.0;
-  return (res - 0.5)*2.0;
-}
 
 float bezier(float t, float a, float b, float c, float d) {
   return (1.0-t)*(1.0-t)*(1.0-t)*a +
@@ -40,29 +20,29 @@ float bezier(float t, float a, float b, float c, float d) {
          t*t*t * d;
 }
 
+float linMap(float in1, float in2, float out1, float out2, float inV) {
+  return out1 + ((inV-in1)/(in2-in1))*(out2 - out1);
+}
+
 
 void main() {
-  // Just set the output to a constant reddish-purple
-//   outColor = vec4(vColor.x*4.0,vColor.y*2.,0,1);//vec4(1, 0, 0.5, 1);
-  
-  vec4 color = texture(u_texture, v_texCoord);
+  float interval = 0.1;
+  float w = mod(v_texCoord.x, interval);
+  float frac = linMap(0.0, 40.0, 0.0, 1.0, u_windAmp);
+  frac = 1.0-clamp((bezier(frac,1.0,0.1,0.2,0.0)),0.0,1.0);
+  float freq = 1.0 - frac;
+  // float freq = 1.0;
 
-  float particleIdx = (v_texCoord.y*255.0)*255.0 + (v_texCoord.x*255.0);
+  float circSize = 0.1+frac*2.0;
+  float distFromCenter = length(v_texCoord - vec2(0.5)) * 1.0/0.707;
+  float circ = 1.0 - smoothstep(circSize - 0.1, circSize, distFromCenter);
+  vec4 circCol = vec4(circ,circ,circ,1) * vec4(0.8,0.8,0.5,1);
+  float glowSize = 0.8;
+  vec4 glowCol = vec4(1.0 - smoothstep(circSize*glowSize - 0.1, circSize*glowSize, distFromCenter));
+  vec4 innerCol = vec4((1.0-distFromCenter) * sin(100.0*(atan((v_texCoord.y-0.5)*0.5, (v_texCoord.x-0.5)*0.5)+3.14)/6.28)) * vec4(0.8,0.8,0.5,1);
 
-  vec2 pos = vec2(decode(color.rg), decode(color.ba));
+  float band = w<interval*freq? 0.0 : 1.0 ;
+  vec4 bandCol = vec4(band,0,0,1);
 
-  float l = length(pos);
-  float tl = length(v_texCoord-vec2(0.5,0.5)); // this is a number between 0 & 0.7: a^2 + b^2 = c^2: 0.5^2+ 0.5^2= C^2 >>> C= 0.7
-  vec2 tx = (v_texCoord-vec2(0.5,0.5))*2.0; // tx is between (-1,-1) &  (1,1)
-  // pos -= (  sin(tl*0.1+u_time*0.001))*0.001;
-  
-  // pos = tl + sin(tx*20.0 + (u_time*0.001))*0.1;
-
-  float scale = 1.0-clamp((bezier(u_windAmp,1.0,0.95,0.2,0.0)),0.0,1.0);
-
-  pos = tx + sin(tl*20.0 + (u_time*0.001))*scale*0.2;
-  /// Do stuff!!!
-  // pos.x += 0.01;
-
-  outColor = vec4(encode(pos.x), encode(pos.y));
+  outColor = /*bandCol + */ circCol + glowCol + innerCol;
 }

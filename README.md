@@ -1,4 +1,6 @@
-![Particles](./src/media/particles.png)
+![arduino](./src/media/arduino.jpg)
+![webGL](./src/media/webGL.png)
+![video](./src/media/video.gif)
 
 ## First-time Setup
 
