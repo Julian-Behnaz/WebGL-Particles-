@@ -9,6 +9,7 @@ uniform sampler2D u_texture;
 precision highp float;
  
 uniform float u_time;
+uniform float u_windAmp;
 
 
 // we need to declare an output for the fragment shader
@@ -32,6 +33,13 @@ float decode(vec2 channels) {
   return (res - 0.5)*2.0;
 }
 
+float bezier(float t, float a, float b, float c, float d) {
+  return (1.0-t)*(1.0-t)*(1.0-t)*a +
+         3.0*(1.0-t)*(1.0-t)*t*b +
+         3.0*(1.0-t)*t*t*c +
+         t*t*t * d;
+}
+
 
 void main() {
   // Just set the output to a constant reddish-purple
@@ -44,10 +52,15 @@ void main() {
   vec2 pos = vec2(decode(color.rg), decode(color.ba));
 
   float l = length(pos);
-  float tl = length(v_texCoord-vec2(0.5,0.5));
-  vec2 tx = (v_texCoord-vec2(0.5,0.5))*2.0;
+  float tl = length(v_texCoord-vec2(0.5,0.5)); // this is a number between 0 & 0.7: a^2 + b^2 = c^2: 0.5^2+ 0.5^2= C^2 >>> C= 0.7
+  vec2 tx = (v_texCoord-vec2(0.5,0.5))*2.0; // tx is between (-1,-1) &  (1,1)
   // pos -= (  sin(tl*0.1+u_time*0.001))*0.001;
-  pos = tx + sin(tl*20.0 + (u_time*0.001))*0.1;
+  
+  // pos = tl + sin(tx*20.0 + (u_time*0.001))*0.1;
+
+  float scale = 1.0-clamp((bezier(u_windAmp,1.0,0.95,0.2,0.0)),0.0,1.0);
+
+  pos = tx + sin(tl*20.0 + (u_time*0.001))*scale*0.2;
   /// Do stuff!!!
   // pos.x += 0.01;
 

@@ -11,6 +11,15 @@ stats.dom.style.right = "0";
 stats.dom.style.top = "50px";
 document.body.appendChild(stats.dom);
 
+let currWindAmp = 0;
+const websocket = new WebSocket('ws://localhost:5000');
+websocket.binaryType = 'arraybuffer';
+websocket.addEventListener('message', (message) => {
+    const dv = new DataView(message.data);
+    currWindAmp = dv.getFloat32(0, true);
+});
+
+
 const canvas = document.querySelector("#main") as HTMLCanvasElement;
 
 const gl = canvas.getContext("webgl2");
@@ -37,10 +46,11 @@ const particlePositionLoc = gl.getAttribLocation(particleProgram, "a_position");
 // const translationAttributeLocation= gl.getAttribLocation(program,"a_translation");
 const timeUniformLocation= gl.getUniformLocation(program, "u_time");
 const textureUniformLocation = gl.getUniformLocation(program, "u_texture");
+const windAmpUniformLoc = gl.getUniformLocation(program, "u_windAmp");
 
 const particleTimeUniformLocation= gl.getUniformLocation(particleProgram, "u_time");
 const particleTextureUniformLoc = gl.getUniformLocation(particleProgram, "u_texture");
-
+const particleWindAmpUL= gl.getUniformLocation(particleProgram, "u_currWindAmp");
 
 
 const particleTexture1 = gl.createTexture();
@@ -224,15 +234,17 @@ function drawNow(time: number) {
 
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, particleFrameBuffer);
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     // attach the texture as the first color attachment
     const attachmentPoint = gl.COLOR_ATTACHMENT0;
     gl.framebufferTexture2D(
-        gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, writingToTexture, /* level */0);
+        gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, writingToTexture, /* level */0); ///  When we draw to particleFrameBuffer, we will modify writingToTexture
 
     gl.bindTexture(gl.TEXTURE_2D, readingFromTexture);
 
     /* Set viewport to match texture size */
     gl.viewport(0, 0, 255, 255);
+    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     // gl.clearColor(0, 0, 0, 1);
     // gl.clear(gl.COLOR_BUFFER_BIT);
@@ -241,6 +253,8 @@ function drawNow(time: number) {
     gl.useProgram(program);
     {
         gl.uniform1f(timeUniformLocation, time);
+        gl.uniform1f(windAmpUniformLoc, currWindAmp);
+
         // console.log(time);
         gl.uniform1i(textureUniformLocation, 0); // texture unit 0
         
@@ -256,7 +270,7 @@ function drawNow(time: number) {
 
 
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); //null here means that data is going to screen
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.bindTexture(gl.TEXTURE_2D, writingToTexture);
@@ -269,6 +283,8 @@ function drawNow(time: number) {
     {
         gl.uniform1i(particleTextureUniformLoc, 0); // texture unit 0
         gl.uniform1f(particleTimeUniformLocation, time);
+        gl.uniform1f(particleWindAmpUL, currWindAmp);
+        console.log(currWindAmp);
         gl.bindVertexArray(particleVao);
         {
             const primitiveType = gl.TRIANGLES;
