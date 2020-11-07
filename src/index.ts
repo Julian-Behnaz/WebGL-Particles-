@@ -9,14 +9,6 @@ stats.dom.style.right = "0";
 stats.dom.style.top = "50px";
 document.body.appendChild(stats.dom);
 
-let currWindAmp = 0;
-const websocket = new WebSocket('ws://localhost:5000');
-websocket.binaryType = 'arraybuffer';
-websocket.addEventListener('message', (message) => {
-    const dv = new DataView(message.data);
-    currWindAmp = dv.getFloat32(0, true);
-});
-
 
 const canvas = document.querySelector("#main") as HTMLCanvasElement;
 
@@ -36,8 +28,8 @@ const fragmentShader = createShader(gl, ShaderType.Fragment, fragSrc);
 const program = createProgram(gl, vertexShader, fragmentShader);
 
 const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-const timeUniformLocation= gl.getUniformLocation(program, "u_time");
-const windAmpUniformLoc = gl.getUniformLocation(program, "u_windAmp");
+const timeUniformLocation = gl.getUniformLocation(program, "u_time");
+const dimsUniformLocation = gl.getUniformLocation(program, "u_dims");
 
 const positionBuffer = gl.createBuffer();
 {
@@ -95,7 +87,6 @@ function drawNow(time: number) {
 
     resize(canvas);
     
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -103,11 +94,10 @@ function drawNow(time: number) {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     
-    //texture:
     gl.useProgram(program);
     {
         gl.uniform1f(timeUniformLocation, time);
-        gl.uniform1f(windAmpUniformLoc, currWindAmp);
+        gl.uniform2f(dimsUniformLocation, gl.canvas.width, gl.canvas.height);
         
         gl.bindVertexArray(vao);
         {
@@ -116,8 +106,6 @@ function drawNow(time: number) {
             const count = 3*2; // How often to execute the vertex shader
             gl.drawArrays(primitiveType, offset, count);
         }
-
-        console.log(currWindAmp);
     }
 
     stats.end();
