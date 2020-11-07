@@ -7,7 +7,7 @@
 ```shell
 npm install
 ```
-
+Inspired by:
 ### https://github.com/electricsquare/raymarching-workshop
 ### https://www.iquilezles.org/www/articles/smin/smin.htm
 
