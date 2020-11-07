@@ -1,5 +1,5 @@
-![arduino](./src/media/arduino.jpg)
-![webGL](./src/media/webGL.png)
+
+![SDF](./src/media/picture.png)
 ![video](./src/media/video.gif)
 
 ## First-time Setup
