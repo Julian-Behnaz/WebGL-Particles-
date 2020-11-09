@@ -38,6 +38,8 @@ const program = createProgram(gl, vertexShader, fragmentShader);
 const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 const timeUniformLocation= gl.getUniformLocation(program, "u_time");
 const windAmpUniformLoc = gl.getUniformLocation(program, "u_windAmp");
+const dimsUniformLocation = gl.getUniformLocation(program, "u_dims");
+const smoothData= gl.getUniformLocation(program,"u_smooth");
 
 const positionBuffer = gl.createBuffer();
 {
@@ -89,7 +91,7 @@ const vao = gl.createVertexArray();
     }
 }
 
-
+let windAdd = 0.0;
 function drawNow(time: number) {
     stats.begin();
 
@@ -108,7 +110,9 @@ function drawNow(time: number) {
     {
         gl.uniform1f(timeUniformLocation, time);
         gl.uniform1f(windAmpUniformLoc, currWindAmp);
-        
+        gl.uniform2f(dimsUniformLocation, gl.canvas.width, gl.canvas.height);
+        gl.uniform1f(smoothData, windAdd);
+        windAdd+= currWindAmp;
         gl.bindVertexArray(vao);
         {
             const primitiveType = gl.TRIANGLES;

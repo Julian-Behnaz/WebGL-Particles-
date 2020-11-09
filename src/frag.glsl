@@ -8,41 +8,36 @@ precision highp float;
  
 uniform float u_time;
 uniform float u_windAmp;
-
+uniform vec2 u_dims;
+uniform float u_smooth;
 
 // we need to declare an output for the fragment shader
 out vec4 outColor;
 
-float bezier(float t, float a, float b, float c, float d) {
-  return (1.0-t)*(1.0-t)*(1.0-t)*a +
-         3.0*(1.0-t)*(1.0-t)*t*b +
-         3.0*(1.0-t)*t*t*c +
-         t*t*t * d;
-}
 
-float linMap(float in1, float in2, float out1, float out2, float inV) {
-  return out1 + ((inV-in1)/(in2-in1))*(out2 - out1);
+
+
+float sdf(vec2 p) {
+  //p -= vec2(0.5,0);
+  //float s;
+  //s = atan(p.y,p.x) * 4.0 + iTime*10.0;
+  //return length(p)-(sin(s)+0.1)*0.3;
+  float t=0.00005*u_time;
+  float a = 0.0;
+  vec2 q = mat2(sin(a), cos(a), cos(a), -sin(a)) * p;
+    vec2 r= vec2 (q.x,q.y);
+    return (sin(q.x * 50.0 * (cos((u_smooth*0.01+length(r)*0.9)*0.9)*0.5+1.0)));
+
+  // return min(sin(p.x * 50.0 * (sin(u_smooth*0.01+length(p))*0.5+1.0)), 
+  //            sin(q.y * 50.0+u_smooth+sin(length(p))));
 }
 
 
 void main() {
-  float interval = 0.1;
-  float w = mod(v_texCoord.x, interval);
-  float frac = linMap(0.0, 40.0, 0.0, 1.0, u_windAmp);
-  frac = 1.0-clamp((bezier(frac,1.0,0.1,0.2,0.0)),0.0,1.0);
-  float freq = 1.0 - frac;
-  // float freq = 1.0;
+ vec2 pos = v_texCoord - vec2(0.5,0.5);
+  pos.x *= u_dims.x/u_dims.y;
+  pos*=5.0;
+  vec3 col = sdf(pos)>0.0? vec3(1,1,1) : vec3(0,0,0);
 
-  float circSize = 0.1+frac*2.0;
-  float distFromCenter = length(v_texCoord - vec2(0.5)) * 1.0/0.707;
-  float circ = 1.0 - smoothstep(circSize - 0.1, circSize, distFromCenter);
-  vec4 circCol = vec4(circ,circ,circ,1) * vec4(0.8,0.8,0.5,1);
-  float glowSize = 0.8;
-  vec4 glowCol = vec4(1.0 - smoothstep(circSize*glowSize - 0.1, circSize*glowSize, distFromCenter));
-  vec4 innerCol = vec4((1.0-distFromCenter) * sin(100.0*(atan((v_texCoord.y-0.5)*0.5, (v_texCoord.x-0.5)*0.5)+3.14)/6.28)) * vec4(0.8,0.8,0.5,1);
-
-  float band = w<interval*freq? 0.0 : 1.0 ;
-  vec4 bandCol = vec4(band,0,0,1);
-
-  outColor = /*bandCol + */ circCol + glowCol + innerCol;
+  outColor= vec4(col,1);
 }

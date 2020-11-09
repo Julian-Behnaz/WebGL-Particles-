@@ -7,6 +7,6 @@
 ```shell
 npm install
 ```
+Inspired by:
 
-
-### https://webgl2fundamentals.org/webgl/lessons/webgl-instanced-drawing.html
+https://github.com/electricsquare/raymarching-workshop
