@@ -125,7 +125,7 @@ float sdf(vec3 p)
     }
 
 
-    float anglePer = 6.283185/20.0;
+    float anglePer = 6.283185/12.0;
     float sector = round(atan(r.z,r.x)/anglePer);
     // float sector = atan(r.y,r.x)/anglePer;
 
