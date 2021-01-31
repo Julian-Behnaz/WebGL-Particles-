@@ -1,6 +1,6 @@
 
 ![SDF](./src/media/picture.png)
-![video](./src/media/video.gif)
+<!-- ![video](./src/media/video.gif) -->
 
 ## First-time Setup
 
