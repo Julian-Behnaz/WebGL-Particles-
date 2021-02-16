@@ -13,7 +13,7 @@ let state = State.WaitingForStart;
 let readIdx = 0;
 const messageBuffer = new ArrayBuffer(4);
 // const readBuffer = new Uint8Array(messageBuffer);
-const floatView = new DataView(messageBuffer);
+const dataView = new DataView(messageBuffer);
 
 // const serialPort = new SerialPort()
 
@@ -36,9 +36,9 @@ wss.on('connection', (ws) => {
 
 SerialPort.list().then((results) => {
     for (let i = 0; i < results.length; i++) {
-        if (results[i].vendorId === '2341') {
+        if (results[i].vendorId === '16C0') {
             const port = new SerialPort(results[i].path, 
-                { baudRate: 57600 },
+                { baudRate: 115200 },
                 (error) => {
                     console.log("Error", error);
                 });
@@ -52,13 +52,14 @@ SerialPort.list().then((results) => {
                             readIdx = 0;
                         }
                     } else if (state === State.Reading) {
-                        floatView.setUint8(readIdx, data.readUInt8(j));
+                        dataView.setUint8(readIdx, data.readUInt8(j));
                         
                         if (readIdx >= 3) {
-                            const float = floatView.getFloat32(0, true);
+                            const sentInt = dataView.getUint32(0, true);
+                            // console.log('Got Int:', sentInt);
                             // console.log(floatReader.getFloat32(0, true));
                             for (let connIdx = 0; connIdx < connections.length; connIdx++) {
-                                if (float > 0) {
+                                if (sentInt > 0) {
                                     connections[connIdx].send(messageBuffer.slice(0));
                                 }
                             }
