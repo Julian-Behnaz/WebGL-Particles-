@@ -36,11 +36,16 @@ wss.on('connection', (ws) => {
 
 SerialPort.list().then((results) => {
     for (let i = 0; i < results.length; i++) {
+        console.log (results[i]);
+    }
+    for (let i = 0; i < results.length; i++) {
         if (results[i].vendorId === '16C0') {
             const port = new SerialPort(results[i].path, 
                 { baudRate: 115200 },
                 (error) => {
-                    console.log("Error", error);
+                    if (error) {   
+                        console.log("Error", error);
+                    }
                 });
             console.log("Start");
             port.on('data', (data) => {
@@ -70,6 +75,9 @@ SerialPort.list().then((results) => {
                     }
                 }
             });
+        }
+        else{
+            console.log(results[i].vendorId);
         }
     }
 });

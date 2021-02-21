@@ -106,7 +106,7 @@ const indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     const data = new Uint16Array((maxPoints - 1)*6);
     for (let i = 0; i < maxPoints; i++) {
-        data[i*6+0] = 0 + 2*i;
+        data[i*6+0] = 0 + 2*i; 
         data[i*6+1] = 1 + 2*i;
         data[i*6+2] = 2 + 2*i;
 
@@ -216,7 +216,7 @@ function drawNow(time: number) {
     gl.useProgram(program);
     {
         gl.uniform1f(timeUniformLocation, time);
-        gl.uniform1f(stretchValUniformLoc, stretchVal/1024);
+        // gl.uniform1f(stretchValUniformLoc, stretchVal/1024);
         
         gl.bindVertexArray(vao);
         {
